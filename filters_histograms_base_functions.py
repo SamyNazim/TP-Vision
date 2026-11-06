@@ -6,19 +6,22 @@ img = plt.imread('algiers.jpg')
 if img is None:
     raise FileNotFoundError("Image file not found. Please check the path and filename.")
 
-# Create noisy image
-noise = np.random.normal(0, 25, img.shape)
+# Create noisy grayscale image
 
-noisy = img.astype(np.float32) + noise
+gray = (0.299 * img[:, :, 0] +
+        0.587 * img[:, :, 1] +
+        0.114 * img[:, :, 2]).astype(np.uint8)
+
+noise = np.random.normal(0, 25, gray.shape)
+
+noisy = gray.astype(np.float32) + noise
 noisy = np.clip(noisy, 0, 255).astype(np.uint8)
 
 # Mean Filter
-h, w, c = img.shape
-img_res_mean = np.zeros((h, w, c), dtype=np.uint8)
+h, w = gray.shape
+img_res_mean = np.zeros((h, w), dtype=np.uint8)
 
-k = int(input("Enter the kernel size (odd number): "))
-if k % 2 == 0:
-    raise ValueError("Kernel size must be an odd number.")
+k = 3
 p = k // 2
 
 for i in range(p, h-p):
@@ -28,7 +31,7 @@ for i in range(p, h-p):
         img_res_mean[i, j] = mean
 
 # Median Filter
-img_res_median = np.zeros((h, w, c), dtype=np.uint8)
+img_res_median = np.zeros((h, w), dtype=np.uint8)
 
 for i in range(p, h-p):
     for j in range(p, w-p):
@@ -48,9 +51,6 @@ def calculate_histogram(image):
     return hist
 
 # Gray scale histogram
-gray = (0.299 * img[:, :, 0] +
-        0.587 * img[:, :, 1] +
-        0.114 * img[:, :, 2]).astype(np.uint8)
 
 hist = calculate_histogram(gray)
 
@@ -79,17 +79,17 @@ hist_equalized = calculate_histogram(gray_equalized)
 plt.figure(figsize=(15, 5))
 
 plt.subplot(1, 3, 1)
-plt.imshow(img)
+plt.imshow(gray, cmap='gray')
 plt.title("Original Image")
 plt.axis("off")
 
 plt.subplot(1, 3, 2)
-plt.imshow(noise)
+plt.imshow(noise, cmap='gray')
 plt.title("Random Noise")
 plt.axis("off")
 
 plt.subplot(1, 3, 3)
-plt.imshow(noisy)
+plt.imshow(noisy, cmap='gray')
 plt.title("Noisy Image")
 plt.axis("off")
 
@@ -99,17 +99,17 @@ plt.show()
 plt.figure(figsize=(15, 5))
 
 plt.subplot(1, 3, 1)
-plt.imshow(img)
+plt.imshow(gray, cmap='gray')
 plt.title("Original Image")
 plt.axis("off")
 
 plt.subplot(1, 3, 2)
-plt.imshow(img_res_mean)
+plt.imshow(img_res_mean, cmap='gray')
 plt.title("Mean Filtered Image")
 plt.axis("off")
 
 plt.subplot(1, 3, 3)
-plt.imshow(img_res_median)
+plt.imshow(img_res_median, cmap='gray')
 plt.title("Median Filtered Image")
 plt.axis("off")
 
