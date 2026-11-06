@@ -56,22 +56,27 @@ hist = calculate_histogram(gray)
 
 # Darkened histogram
 
-gray2 = (gray / 2).astype(np.uint8)
+gray_dark = (gray / 2).astype(np.uint8)
 
-hist2 = calculate_histogram(gray2)
+hist_dark = calculate_histogram(gray_dark)
 
 # Brightened histogram
 
-gray3 = np.clip(gray.astype(np.int16) + 128, 0, 255).astype(np.uint8)
+gray_bright = np.clip(gray.astype(np.int16) + 128, 0, 255).astype(np.uint8)
 
-hist3 = calculate_histogram(gray3)
+hist_bright = calculate_histogram(gray_bright)
 
 # Equalized histogram
 
-gray_equalized = (gray / 2 + 50).astype(np.uint8)
+Pmin = float(gray_dark.min())
+Pmax = float(gray_dark.max())
+
+if Pmax > Pmin:
+    gray_equalized = ((gray_dark.astype(np.float32) - Pmin) * 255 / (Pmax - Pmin)).astype(np.uint8)
+else:
+    gray_equalized = gray_dark.copy()
 
 hist_equalized = calculate_histogram(gray_equalized)
-
 
 # Display images
 
@@ -129,7 +134,7 @@ plt.xlim(0, 255)
 
 # Darkened histogram
 plt.subplot(2, 2, 2)
-plt.plot(hist2)
+plt.plot(hist_dark)
 plt.title("Darkened Image Histogram")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
@@ -137,7 +142,7 @@ plt.xlim(0, 255)
 
 # Brightened histogram
 plt.subplot(2, 2, 3)
-plt.plot(hist3)
+plt.plot(hist_bright)
 plt.title("Brightened Image Histogram")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
@@ -146,7 +151,7 @@ plt.xlim(0, 255)
 # Equalized histogram
 plt.subplot(2, 2, 4)
 plt.plot(hist_equalized)
-plt.title("Equalized Image Histogram")
+plt.title("Dark Image Equalized Histogram")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
 plt.xlim(0, 255)
