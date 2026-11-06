@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 
 img = plt.imread('algiers.jpg')
 
-if img.dtype != np.uint8:
-    img = (img * 255).astype(np.uint8)
-    
+if img is None:
+    raise FileNotFoundError("Image file not found. Please check the path and filename.")
+
 # Create noisy image
 noise = np.random.normal(0, 25, img.shape)
 
