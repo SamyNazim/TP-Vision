@@ -1,195 +1,128 @@
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-img = plt.imread('algiers.jpg')
+img = cv2.imread('green.jpg',cv2.IMREAD_COLOR)
 
 if img is None:
     raise FileNotFoundError("Image file not found. Please check the path and filename.")
 
-# Create noisy grayscale image
+gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+cv2.imshow("gray", gray)
 
-gray = (0.299 * img[:, :, 0] +
-        0.587 * img[:, :, 1] +
-        0.114 * img[:, :, 2]).astype(np.uint8)
+# Créer bruit aléatoire
+noise = np.random.normal(0,25,gray.shape)
 
-noise = np.random.normal(0, 25, gray.shape)
-
+# Appliquer bruit à l'image 
 noisy = gray.astype(np.float32) + noise
-noisy = np.clip(noisy, 0, 255).astype(np.uint8)
+noisy = np.clip(noisy,0, 255).astype(np.uint8)
 
-# Mean Filter
-h, w = gray.shape
-img_res_mean = np.zeros((h, w), dtype=np.uint8)
+# Afficher bruit et image
+cv2.imshow("noise", noise)
+cv2.imshow("noisy", noisy)
 
-k = 3
-p = k // 2
+def blur_image(value):
+    k = 2 * value + 1
+    mean_filtered = cv2.blur(noisy,(k,k)) 
+    cv2.imshow("Blur", mean_filtered)
 
-for i in range(p, h-p):
-    for j in range(p, w-p):
-        neighborhood = noisy[i-p:i+p+1, j-p:j+p+1]
-        mean = np.mean(neighborhood, axis=(0, 1))
-        img_res_mean[i, j] = mean
+cv2.namedWindow("Blur")
+cv2.createTrackbar("Kernel size", "Blur",2,20,blur_image)
+blur_image(2)
 
-# Median Filter
-img_res_median = np.zeros((h, w), dtype=np.uint8)
+# mean (moyenne normale) gauss (moyenne pondérée)
 
-for i in range(p, h-p):
-    for j in range(p, w-p):
-        neighborhood = noisy[i-p:i+p+1, j-p:j+p+1]
-        median = np.median(neighborhood, axis=(0, 1))
-        img_res_median[i, j] = median
+def gauss_blur_image(value):
+    k = 2 * value + 1
+    gaussian = cv2.GaussianBlur(noisy, (k, k), 0)
+    cv2.imshow("GaussianBlur", gaussian)
 
-# Histograms 
 
-def calculate_histogram(image):
-    hist = np.zeros(256, dtype=int)
-    h, w = image.shape
-    for i in range(h):
-        for j in range(w):
-            intensity = image[i, j]
-            hist[intensity] += 1
-    return hist
+cv2.namedWindow("GaussianBlur")
+cv2.createTrackbar("Kernel size", "GaussianBlur", 1, 20, gauss_blur_image)
 
-# Gray scale histogram
+gauss_blur_image(2)
 
-hist = calculate_histogram(gray)
+# Filtre median : conserve mieux les contours
 
-# Darkened histogram
+def median_blur_image(value):
+    k = 2*value+1
+    median = cv2.medianBlur(noisy, k)
+    cv2.imshow("MedianBlur", median)
 
-gray_dark = (gray / 2).astype(np.uint8)
+cv2.namedWindow("MedianBlur")
+cv2.createTrackbar("Kernel size", "MedianBlur", 1, 20, median_blur_image)
 
-hist_dark = calculate_histogram(gray_dark)
+median_blur_image(2)
 
-# Brightened histogram
+# Histogramme (Fréquence des niveaux de gris)
 
-gray_bright = np.clip(gray.astype(np.int16) + 128, 0, 255).astype(np.uint8)
+hist = cv2.calcHist([gray],[0],None,[256],[0,256])
+plt.figure(figsize=[0,5])
 
-hist_bright = calculate_histogram(gray_bright)
-
-# Normalized histogram
-
-Pmin = float(np.min(gray_dark))
-Pmax = float(np.max(gray_dark))
-
-if Pmax > Pmin:
-    gray_normalized = ((gray_dark.astype(np.float32) - Pmin) * 255 / (Pmax - Pmin)).astype(np.uint8)
-else:
-    gray_normalized = gray_dark.copy()
-
-hist_normalized = calculate_histogram(gray_normalized)
-
-# Smoothed histogram 
-
-hist_smoothed = np.zeros(256, dtype=float)
-
-for i in range(1, 255):
-    hist_smoothed[i] = (hist_normalized[i-1] +
-                        2 * hist_normalized[i] +
-                        hist_normalized[i+1]) / 4
-
-hist_smoothed[0] = (2 * hist_normalized[0] + hist_normalized[1]) / 3
-hist_smoothed[255] = (hist_normalized[254] + 2 * hist_normalized[255]) / 3
-
-# Display images
-
-# Display original image, noise and noisy image
-plt.figure(figsize=(15, 5))
-
-plt.subplot(1, 3, 1)
-plt.imshow(gray, cmap='gray')
-plt.title("Original Image")
-plt.axis("off")
-
-plt.subplot(1, 3, 2)
-plt.imshow(noise, cmap='gray')
-plt.title("Random Noise")
-plt.axis("off")
-
-plt.subplot(1, 3, 3)
-plt.imshow(noisy, cmap='gray')
-plt.title("Noisy Image")
-plt.axis("off")
-
-plt.show()
-
-# Display original, mean filtered and median filtered images
-plt.figure(figsize=(15, 5))
-
-plt.subplot(1, 3, 1)
-plt.imshow(gray, cmap='gray')
-plt.title("Original Image")
-plt.axis("off")
-
-plt.subplot(1, 3, 2)
-plt.imshow(img_res_mean, cmap='gray')
-plt.title("Mean Filtered Image")
-plt.axis("off")
-
-plt.subplot(1, 3, 3)
-plt.imshow(img_res_median, cmap='gray')
-plt.title("Median Filtered Image")
-plt.axis("off")
-
-plt.show()
-
-# Display histograms
-
-plt.figure(figsize=(12, 8))
-
-# Grayscale histogram
-plt.subplot(2, 2, 1)
 plt.plot(hist)
-plt.title("Grayscale Histogram")
+
+plt.title("Image Histogram")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-# Darkened histogram
-plt.subplot(2, 2, 2)
-plt.plot(hist_dark)
-plt.title("Darkened Image Histogram")
-plt.xlabel("Intensity")
-plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-# Brightened histogram
-plt.subplot(2, 2, 3)
-plt.plot(hist_bright)
-plt.title("Brightened Image Histogram")
-plt.xlabel("Intensity")
-plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-# Normalized histogram
-plt.subplot(2, 2, 4)
-plt.plot(hist_normalized)
-plt.title("Normalized Dark Image Histogram")
-plt.xlabel("Intensity")
-plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-plt.tight_layout()
 plt.show()
 
-# Display normalized histogram and smoothed version
+# rendre image plus sombre: img_dark = img / 2
 
-plt.figure(figsize=(12, 5))
+gray2 = (gray/2).astype(np.uint8)
 
-# Normalized histogram 
-plt.subplot(1, 2, 1)
-plt.bar(range(256), hist_normalized, width=1)
-plt.title("Normalized Dark Image Histogram")
+hist2 = cv2.calcHist([gray2], [0], None, [256], [0, 256])
+
+plt.figure(figsize=(5, 5))
+
+plt.plot(hist2)
+
+plt.title("Image Histogram (Dark)")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-# Smoothed normalized histogram
-plt.subplot(1, 2, 2)
-plt.plot(hist_smoothed)
-plt.title("Smoothed Normalized Dark Image Histogram")
-plt.xlabel("Intensity")
-plt.ylabel("Frequency")
-plt.xlim(0, 255)
-
-plt.tight_layout(rect=(0, 0.08, 1, 1))
 plt.show()
+
+# rendre image plus claire: img_bright = img + 128
+
+gray3 = (gray/2+127).astype(np.uint8)
+
+hist3 = cv2.calcHist([gray3], [0], None, [256], [0, 256])
+
+plt.figure(figsize=(5, 5))
+
+plt.plot(hist3)
+
+plt.title("Image Histogram (Bright)")
+plt.xlabel("Intensity")
+plt.ylabel("Frequency")
+plt.show()
+
+# equalize 
+gray = (gray/2+50).astype(np.uint8)
+
+hist = cv2.calcHist([gray],[0],None,[256],[0,256])
+plt.figure(figsize=[0,5])
+
+plt.plot(hist)
+
+plt.title("New Image Histogram")
+plt.xlabel("Intensity")
+plt.ylabel("Frequency")
+plt.show()
+
+gray_equ = cv2.equalizeHist(gray)
+hist2 = cv2.calcHist([gray_equ],[0],None,[256],[0,256])
+plt.figure(figsize=[0,5])
+
+plt.plot(hist)
+
+plt.title("New Image Histogram (Equalized)")
+plt.xlabel("Intensity")
+plt.ylabel("Frequency")
+plt.show()
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# new histogramme : probleme 0, 2, 4,, 6... peut etre corrigé avec la moyenne
+# Filtre moyen (fonctions de base: boucles), filtre median, histogramme (AVEC FONCTIONS DE BASE)
