@@ -66,17 +66,29 @@ gray_bright = np.clip(gray.astype(np.int16) + 128, 0, 255).astype(np.uint8)
 
 hist_bright = calculate_histogram(gray_bright)
 
-# Equalized histogram
+# Normalized histogram
 
-Pmin = float(gray_dark.min())
-Pmax = float(gray_dark.max())
+min = float(gray_dark.min())
+max = float(gray_dark.max())
 
-if Pmax > Pmin:
-    gray_equalized = ((gray_dark.astype(np.float32) - Pmin) * 255 / (Pmax - Pmin)).astype(np.uint8)
+if max > min:
+    gray_normalized = ((gray_dark.astype(np.float32) - min) * 255 / (max - min)).astype(np.uint8)
 else:
-    gray_equalized = gray_dark.copy()
+    gray_normalized = gray_dark.copy()
 
-hist_equalized = calculate_histogram(gray_equalized)
+hist_normalized = calculate_histogram(gray_normalized)
+
+# Smoothed histogram 
+
+hist_smoothed = np.zeros(256, dtype=float)
+
+for i in range(1, 255):
+    hist_smoothed[i] = (hist_normalized[i-1] +
+                        2 * hist_normalized[i] +
+                        hist_normalized[i+1]) / 4
+
+hist_smoothed[0] = (2 * hist_normalized[0] + hist_normalized[1]) / 3
+hist_smoothed[255] = (hist_normalized[254] + 2 * hist_normalized[255]) / 3
 
 # Display images
 
@@ -148,13 +160,36 @@ plt.xlabel("Intensity")
 plt.ylabel("Frequency")
 plt.xlim(0, 255)
 
-# Equalized histogram
+# Normalized histogram
 plt.subplot(2, 2, 4)
-plt.plot(hist_equalized)
-plt.title("Dark Image Equalized Histogram")
+plt.plot(hist_normalized)
+plt.title("Dark Image Normalized Histogram")
 plt.xlabel("Intensity")
 plt.ylabel("Frequency")
 plt.xlim(0, 255)
 
 plt.tight_layout()
+plt.show()
+
+# Display normalized histogram and smoothed version
+
+plt.figure(figsize=(12, 5))
+
+# Normalized histogram 
+plt.subplot(1, 2, 1)
+plt.bar(range(256), hist_normalized, width=1)
+plt.title("Normalized Dark Image Histogram")
+plt.xlabel("Intensity")
+plt.ylabel("Frequency")
+plt.xlim(0, 255)
+
+# Smoothed normalized histogram
+plt.subplot(1, 2, 2)
+plt.plot(hist_smoothed)
+plt.title("Smoothed Normalized Dark Image Histogram")
+plt.xlabel("Intensity")
+plt.ylabel("Frequency")
+plt.xlim(0, 255)
+
+plt.tight_layout(rect=(0, 0.08, 1, 1))
 plt.show()
